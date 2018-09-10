@@ -42,14 +42,15 @@ int main (int argc, char * argv[] )
 
 
 	//Causes the system to create a generic socket of type UDP (datagram)
-	if ((sock = **** CALL SOCKET() HERE TO CREATE UDP SOCKET ****) < 0)
+	//if ((sock = **** CALL SOCKET() HERE TO CREATE UDP SOCKET ****) < 0)
+	if (1)
 	{
 		printf("unable to create socket");
 	}
 
 
 	/******************
-	  Once we've created a socket, we must bind that socket to the 
+	  Once we've created a socket, we must bind that socket to the
 	  local address and port we've supplied in the sockaddr_in struct
 	 ******************/
 	if (bind(sock, (struct sockaddr *)&sin, sizeof(sin)) < 0)
@@ -61,12 +62,12 @@ int main (int argc, char * argv[] )
 
 	//waits for an incoming message
 	bzero(buffer,sizeof(buffer));
-	nbytes = nbytes = **** CALL RECVFROM() HERE ****;
+	//nbytes = nbytes = **** CALL RECVFROM() HERE ****;
 
 	printf("The client says %s\n", buffer);
 
 	char msg[] = "orange";
-	nbytes = **** CALL SENDTO() HERE ****;
+	//nbytes = **** CALL SENDTO() HERE ****;
 
 	close(sock);
 }
