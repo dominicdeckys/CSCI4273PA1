@@ -42,10 +42,9 @@ int main (int argc, char * argv[] )
 
 
 	//Causes the system to create a generic socket of type UDP (datagram)
-	//if ((sock = **** CALL SOCKET() HERE TO CREATE UDP SOCKET ****) < 0)
-	if (1)
+	if ((sock = socket(PF_INET,SOCK_DGRAM,0)) < 0)
 	{
-		printf("unable to create socket");
+		printf("unable to create socket\n");
 	}
 
 
@@ -62,7 +61,8 @@ int main (int argc, char * argv[] )
 
 	//waits for an incoming message
 	bzero(buffer,sizeof(buffer));
-	//nbytes = nbytes = **** CALL RECVFROM() HERE ****;
+	printf("waiting for the messgae\n");
+	nbytes = nbytes = recvfrom( sock, buffer, sizeof(buffer), 0, &remote, &remote_length);
 
 	printf("The client says %s\n", buffer);
 

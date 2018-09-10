@@ -2,3 +2,9 @@
 *.o
 
 udp/udp_client
+
+udp/udp_server
+
+udp/client2
+
+udp/server2

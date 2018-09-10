@@ -11,8 +11,11 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <errno.h>
+#include <string.h>
 
 #define MAXBUFSIZE 100
+#define TRUE 1
+#define FALSE 0
 
 /* You will have to modify the program below */
 
@@ -22,6 +25,7 @@ int main (int argc, char * argv[])
 	int nbytes;                             // number of bytes send by sendto()
 	int sock;                               //this will be our socket
 	char buffer[MAXBUFSIZE];
+	char localhost[] = "127.0.0.1";
 
 	struct sockaddr_in remote;              //"Internet socket address structure"
 
@@ -29,6 +33,12 @@ int main (int argc, char * argv[])
 	{
 		printf("USAGE:  <server_ip> <server_port>\n");
 		exit(1);
+	}
+
+	char * char_address = argv[1];
+	if (strcasecmp("localhost", char_address) == 0) {
+        printf("Using localhost\n");
+        strcpy(localhost, char_address);
 	}
 
 	/******************
@@ -39,13 +49,12 @@ int main (int argc, char * argv[])
 	bzero(&remote,sizeof(remote));               //zero the struct
 	remote.sin_family = AF_INET;                 //address family
 	remote.sin_port = htons(atoi(argv[2]));      //sets port to network byte order
-	remote.sin_addr.s_addr = inet_addr(argv[1]); //sets remote IP address
+	remote.sin_addr.s_addr = inet_addr("127.0.0.1");//inet_addr(argv[1]); //sets remote IP address
 
 	//Causes the system to create a generic socket of type UDP (datagram)
-	//if ((sock = **** CALL SOCKET() HERE TO CREATE A UDP SOCKET ****) < 0)
-	if (1)
+	if (sock = socket(PF_INET,SOCK_DGRAM,0) < 0)
 	{
-		printf("unable to create socket");
+		printf("unable to create socket\n");
 	}
 
 	/******************
@@ -54,7 +63,11 @@ int main (int argc, char * argv[])
 	  however, with UDP, there is no error if the message is lost in the network once it leaves the computer.
 	 ******************/
 	char command[] = "apple";
-	//nbytes = **** CALL SENDTO() HERE ****;
+	nbytes = sendto( sock, command, sizeof(command), 0, &remote, sizeof(remote));
+
+	if (nbytes < 0) {
+        printf("Sendto failed\n");
+	}
 
 	// Blocks till bytes are received
 	struct sockaddr_in from_addr;
@@ -62,7 +75,7 @@ int main (int argc, char * argv[])
 	bzero(buffer,sizeof(buffer));
 	//nbytes = **** CALL RECVFROM() HERE ****;
 
-	printf("Server says %s\n", buffer);
+	//printf("Server says %s\n", buffer);
 
 	close(sock);
 
