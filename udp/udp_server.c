@@ -1,5 +1,5 @@
-/* 
- * udpserver.c - A simple UDP echo server 
+/*
+ * udpserver.c - A simple UDP echo server
  * usage: udpserver <port>
  */
 
@@ -8,12 +8,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <netdb.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <dirent.h>
 
 #define BUFSIZE 1024
+#define TRUE 1
+#define FAlSE 0
 
 /*
  * error - wrapper for perror
@@ -21,6 +24,25 @@
 void error(char *msg) {
   perror(msg);
   exit(1);
+}
+
+int performLS(char * ls) {
+    DIR *dp;
+    struct dirent *ep;
+    strcpy(ls, "");
+    dp = opendir ("./");
+
+    if (dp != NULL)
+    {
+        while (ep = readdir (dp)){
+          strcat (ls, ep->d_name);
+          strcat (ls, "\n");
+        }
+
+        (void) closedir (dp);
+    }
+    else return 0;
+    return 1;
 }
 
 int main(int argc, char **argv) {
@@ -31,12 +53,15 @@ int main(int argc, char **argv) {
   struct sockaddr_in clientaddr; /* client addr */
   struct hostent *hostp; /* client host info */
   char buf[BUFSIZE]; /* message buf */
+  char buf2[BUFSIZE];
   char *hostaddrp; /* dotted decimal host addr string */
+  char * arg;
+  char badMessage[] = "Error: Bad Message!";
   int optval; /* flag value for setsockopt */
   int n; /* message byte size */
 
-  /* 
-   * check command line arguments 
+  /*
+   * check command line arguments
    */
   if (argc != 2) {
     fprintf(stderr, "usage: %s <port>\n", argv[0]);
@@ -44,20 +69,20 @@ int main(int argc, char **argv) {
   }
   portno = atoi(argv[1]);
 
-  /* 
-   * socket: create the parent socket 
+  /*
+   * socket: create the parent socket
    */
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sockfd < 0) 
+  if (sockfd < 0)
     error("ERROR opening socket");
 
-  /* setsockopt: Handy debugging trick that lets 
-   * us rerun the server immediately after we kill it; 
-   * otherwise we have to wait about 20 secs. 
-   * Eliminates "ERROR on binding: Address already in use" error. 
+  /* setsockopt: Handy debugging trick that lets
+   * us rerun the server immediately after we kill it;
+   * otherwise we have to wait about 20 secs.
+   * Eliminates "ERROR on binding: Address already in use" error.
    */
   optval = 1;
-  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, 
+  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
 	     (const void *)&optval , sizeof(int));
 
   /*
@@ -68,18 +93,18 @@ int main(int argc, char **argv) {
   serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
   serveraddr.sin_port = htons((unsigned short)portno);
 
-  /* 
-   * bind: associate the parent socket with a port 
+  /*
+   * bind: associate the parent socket with a port
    */
-  if (bind(sockfd, (struct sockaddr *) &serveraddr, 
-	   sizeof(serveraddr)) < 0) 
+  if (bind(sockfd, (struct sockaddr *) &serveraddr,
+	   sizeof(serveraddr)) < 0)
     error("ERROR on binding");
 
-  /* 
+  /*
    * main loop: wait for a datagram, then echo it
    */
   clientlen = sizeof(clientaddr);
-  while (1) {
+  while (TRUE) {
 
     /*
      * recvfrom: receive a UDP datagram from a client
@@ -90,26 +115,68 @@ int main(int argc, char **argv) {
     if (n < 0)
       error("ERROR in recvfrom");
 
-    /* 
+    /*
      * gethostbyaddr: determine who sent the datagram
      */
-    hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, 
+    hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr,
 			  sizeof(clientaddr.sin_addr.s_addr), AF_INET);
     if (hostp == NULL)
       error("ERROR on gethostbyaddr");
     hostaddrp = inet_ntoa(clientaddr.sin_addr);
     if (hostaddrp == NULL)
       error("ERROR on inet_ntoa\n");
-    printf("server received datagram from %s (%s)\n", 
+    printf("server received datagram from %s (%s)\n",
 	   hostp->h_name, hostaddrp);
     printf("server received %d/%d bytes: %s\n", strlen(buf), n, buf);
-    
-    /* 
-     * sendto: echo the input back to the client 
-     */
-    n = sendto(sockfd, buf, strlen(buf), 0, 
+
+
+    arg = strtok(buf, " \n");
+
+    if (strcasecmp(buf, "get") == 0) {
+        arg = strtok(NULL, " \n");
+        if (arg == NULL) {
+            sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
+        }
+        else {
+            //TODO
+        }
+    }
+    else if (strcasecmp(buf, "put") == 0) {
+        arg = strtok(NULL, " \n");
+        if (arg == NULL) {
+            sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
+        }
+        else {
+            //TODO
+        }
+    }
+    else if (strcasecmp(arg, "delete") == 0) {
+        arg = strtok(NULL, " \n");
+        if (arg == NULL) {
+            printf("Please specify the file to delete");
+        }
+        else {
+            //TODO
+        }
+    }
+    else if (strcasecmp(arg, "ls") == 0) {
+        bzero(buf2, BUFSIZE);
+        performLS(buf2);
+        n = sendto(sockfd, buf2, strlen(buf2), 0,
 	       (struct sockaddr *) &clientaddr, clientlen);
-    if (n < 0) 
-      error("ERROR in sendto");
+        if (n < 0)
+          error("ERROR in sendto");
+    }
+    else if (strcasecmp(arg, "hello") == 0) {
+        n = sendto(sockfd, arg, strlen(arg), 0, (struct sockaddr *) &clientaddr, clientlen);
+        if (n < 0)
+          error("ERROR in sendto");
+    }
+    /*
+     * sendto: echo the input back to the client
+     */
+    //n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &clientaddr, clientlen);
+    //if (n < 0)
+      //error("ERROR in sendto");
   }
 }
