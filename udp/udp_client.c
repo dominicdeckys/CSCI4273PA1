@@ -1,83 +1,76 @@
+/* 
+ * udpclient.c - A simple UDP client
+ * usage: udpclient <host> <port>
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <signal.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <errno.h>
-#include <string.h>
+#include <netdb.h> 
 
-#define MAXBUFSIZE 100
-#define TRUE 1
-#define FALSE 0
+#define BUFSIZE 1024
 
-/* You will have to modify the program below */
-
-int main (int argc, char * argv[])
-{
-
-	int nbytes;                             // number of bytes send by sendto()
-	int sock;                               //this will be our socket
-	char buffer[MAXBUFSIZE];
-	char localhost[] = "127.0.0.1";
-
-	struct sockaddr_in remote;              //"Internet socket address structure"
-
-	if (argc < 3)
-	{
-		printf("USAGE:  <server_ip> <server_port>\n");
-		exit(1);
-	}
-
-	char * char_address = argv[1];
-	if (strcasecmp("localhost", char_address) == 0) {
-        printf("Using localhost\n");
-        strcpy(localhost, char_address);
-	}
-
-	/******************
-	  Here we populate a sockaddr_in struct with
-	  information regarding where we'd like to send our packet
-	  i.e the Server.
-	 ******************/
-	bzero(&remote,sizeof(remote));               //zero the struct
-	remote.sin_family = AF_INET;                 //address family
-	remote.sin_port = htons(atoi(argv[2]));      //sets port to network byte order
-	remote.sin_addr.s_addr = inet_addr("127.0.0.1");//inet_addr(argv[1]); //sets remote IP address
-
-	//Causes the system to create a generic socket of type UDP (datagram)
-	if (sock = socket(PF_INET,SOCK_DGRAM,0) < 0)
-	{
-		printf("unable to create socket\n");
-	}
-
-	/******************
-	  sendto() sends immediately.
-	  it will report an error if the message fails to leave the computer
-	  however, with UDP, there is no error if the message is lost in the network once it leaves the computer.
-	 ******************/
-	char command[] = "apple";
-	nbytes = sendto( sock, command, sizeof(command), 0, &remote, sizeof(remote));
-
-	if (nbytes < 0) {
-        printf("Sendto failed\n");
-	}
-
-	// Blocks till bytes are received
-	struct sockaddr_in from_addr;
-	int addr_length = sizeof(struct sockaddr);
-	bzero(buffer,sizeof(buffer));
-	//nbytes = **** CALL RECVFROM() HERE ****;
-
-	//printf("Server says %s\n", buffer);
-
-	close(sock);
-
+/* 
+ * error - wrapper for perror
+ */
+void error(char *msg) {
+    perror(msg);
+    exit(0);
 }
 
+int main(int argc, char **argv) {
+    int sockfd, portno, n;
+    int serverlen;
+    struct sockaddr_in serveraddr;
+    struct hostent *server;
+    char *hostname;
+    char buf[BUFSIZE];
+
+    /* check command line arguments */
+    if (argc != 3) {
+       fprintf(stderr,"usage: %s <hostname> <port>\n", argv[0]);
+       exit(0);
+    }
+    hostname = argv[1];
+    portno = atoi(argv[2]);
+
+    /* socket: create the socket */
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) 
+        error("ERROR opening socket");
+
+    /* gethostbyname: get the server's DNS entry */
+    server = gethostbyname(hostname);
+    if (server == NULL) {
+        fprintf(stderr,"ERROR, no such host as %s\n", hostname);
+        exit(0);
+    }
+
+    /* build the server's Internet address */
+    bzero((char *) &serveraddr, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, 
+	  (char *)&serveraddr.sin_addr.s_addr, server->h_length);
+    serveraddr.sin_port = htons(portno);
+
+    /* get a message from the user */
+    bzero(buf, BUFSIZE);
+    printf("Please enter msg: ");
+    fgets(buf, BUFSIZE, stdin);
+
+    /* send the message to the server */
+    serverlen = sizeof(serveraddr);
+    n = sendto(sockfd, buf, strlen(buf), 0, &serveraddr, serverlen);
+    if (n < 0) 
+      error("ERROR in sendto");
+    
+    /* print the server's reply */
+    n = recvfrom(sockfd, buf, strlen(buf), 0, &serveraddr, &serverlen);
+    if (n < 0) 
+      error("ERROR in recvfrom");
+    printf("Echo from server: %s", buf);
+    return 0;
+}

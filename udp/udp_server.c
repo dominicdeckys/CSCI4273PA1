@@ -1,74 +1,115 @@
-#include <sys/types.h>
+/* 
+ * udpserver.c - A simple UDP echo server 
+ * usage: udpserver <port>
+ */
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <signal.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <string.h>
-/* You will have to modify the program below */
 
-#define MAXBUFSIZE 100
+#define BUFSIZE 1024
 
-int main (int argc, char * argv[] )
-{
-
-
-	int sock;                           //This will be our socket
-	struct sockaddr_in sin, remote;     //"Internet socket address structure"
-	unsigned int remote_length;         //length of the sockaddr_in structure
-	int nbytes;                        //number of bytes we receive in our message
-	char buffer[MAXBUFSIZE];             //a buffer to store our received message
-	if (argc != 2)
-	{
-		printf ("USAGE:  <port>\n");
-		exit(1);
-	}
-
-	/******************
-	  This code populates the sockaddr_in struct with
-	  the information about our socket
-	 ******************/
-	bzero(&sin,sizeof(sin));                    //zero the struct
-	sin.sin_family = AF_INET;                   //address family
-	sin.sin_port = htons(atoi(argv[1]));        //htons() sets the port # to network byte order
-	sin.sin_addr.s_addr = INADDR_ANY;           //supplies the IP address of the local machine
-
-
-	//Causes the system to create a generic socket of type UDP (datagram)
-	if ((sock = socket(PF_INET,SOCK_DGRAM,0)) < 0)
-	{
-		printf("unable to create socket\n");
-	}
-
-
-	/******************
-	  Once we've created a socket, we must bind that socket to the
-	  local address and port we've supplied in the sockaddr_in struct
-	 ******************/
-	if (bind(sock, (struct sockaddr *)&sin, sizeof(sin)) < 0)
-	{
-		printf("unable to bind socket\n");
-	}
-
-	remote_length = sizeof(remote);
-
-	//waits for an incoming message
-	bzero(buffer,sizeof(buffer));
-	printf("waiting for the messgae\n");
-	nbytes = nbytes = recvfrom( sock, buffer, sizeof(buffer), 0, &remote, &remote_length);
-
-	printf("The client says %s\n", buffer);
-
-	char msg[] = "orange";
-	//nbytes = **** CALL SENDTO() HERE ****;
-
-	close(sock);
+/*
+ * error - wrapper for perror
+ */
+void error(char *msg) {
+  perror(msg);
+  exit(1);
 }
 
+int main(int argc, char **argv) {
+  int sockfd; /* socket */
+  int portno; /* port to listen on */
+  int clientlen; /* byte size of client's address */
+  struct sockaddr_in serveraddr; /* server's addr */
+  struct sockaddr_in clientaddr; /* client addr */
+  struct hostent *hostp; /* client host info */
+  char buf[BUFSIZE]; /* message buf */
+  char *hostaddrp; /* dotted decimal host addr string */
+  int optval; /* flag value for setsockopt */
+  int n; /* message byte size */
+
+  /* 
+   * check command line arguments 
+   */
+  if (argc != 2) {
+    fprintf(stderr, "usage: %s <port>\n", argv[0]);
+    exit(1);
+  }
+  portno = atoi(argv[1]);
+
+  /* 
+   * socket: create the parent socket 
+   */
+  sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sockfd < 0) 
+    error("ERROR opening socket");
+
+  /* setsockopt: Handy debugging trick that lets 
+   * us rerun the server immediately after we kill it; 
+   * otherwise we have to wait about 20 secs. 
+   * Eliminates "ERROR on binding: Address already in use" error. 
+   */
+  optval = 1;
+  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, 
+	     (const void *)&optval , sizeof(int));
+
+  /*
+   * build the server's Internet address
+   */
+  bzero((char *) &serveraddr, sizeof(serveraddr));
+  serveraddr.sin_family = AF_INET;
+  serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  serveraddr.sin_port = htons((unsigned short)portno);
+
+  /* 
+   * bind: associate the parent socket with a port 
+   */
+  if (bind(sockfd, (struct sockaddr *) &serveraddr, 
+	   sizeof(serveraddr)) < 0) 
+    error("ERROR on binding");
+
+  /* 
+   * main loop: wait for a datagram, then echo it
+   */
+  clientlen = sizeof(clientaddr);
+  while (1) {
+
+    /*
+     * recvfrom: receive a UDP datagram from a client
+     */
+    bzero(buf, BUFSIZE);
+    n = recvfrom(sockfd, buf, BUFSIZE, 0,
+		 (struct sockaddr *) &clientaddr, &clientlen);
+    if (n < 0)
+      error("ERROR in recvfrom");
+
+    /* 
+     * gethostbyaddr: determine who sent the datagram
+     */
+    hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, 
+			  sizeof(clientaddr.sin_addr.s_addr), AF_INET);
+    if (hostp == NULL)
+      error("ERROR on gethostbyaddr");
+    hostaddrp = inet_ntoa(clientaddr.sin_addr);
+    if (hostaddrp == NULL)
+      error("ERROR on inet_ntoa\n");
+    printf("server received datagram from %s (%s)\n", 
+	   hostp->h_name, hostaddrp);
+    printf("server received %d/%d bytes: %s\n", strlen(buf), n, buf);
+    
+    /* 
+     * sendto: echo the input back to the client 
+     */
+    n = sendto(sockfd, buf, strlen(buf), 0, 
+	       (struct sockaddr *) &clientaddr, clientlen);
+    if (n < 0) 
+      error("ERROR in sendto");
+  }
+}
