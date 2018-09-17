@@ -28,6 +28,19 @@ void sayPrompt() {
     printf("get [file_name]\nput [file_name]\ndelete [file_name]\nls\nexit\n");
 }
 
+void readFile(const char * fileName) {
+    FILE * file = fopen(fileName, "r");
+    size_t byteCount = 0;
+    unsigned char buf[BUFSIZE];
+    int t = 0;
+    while ((byteCount = fread(buf, 1, sizeof(buf), file)) > 0) {
+        t++;
+        printf("Chunk %i\nSize %i\n", t, byteCount);
+    }
+}
+
+void buildHeader(char * header, int type, size_t size, )
+
 int main(int argc, char **argv) {
     int sockfd, portno, n;
     int serverlen;
@@ -95,7 +108,7 @@ int main(int argc, char **argv) {
         if (strcasecmp(arg, "get") == 0) {
             arg = strtok(NULL, " \n");
             if (arg == NULL) {
-                printf("Please specify the file to get");
+                printf("Please specify the file to get\n");
             }
             else {
                 //TODO
@@ -104,16 +117,16 @@ int main(int argc, char **argv) {
         else if (strcasecmp(arg, "put") == 0) {
             arg = strtok(NULL, " \n");
             if (arg == NULL) {
-                printf("Please specify the file to put");
+                printf("Please specify the file to put\n");
             }
             else {
-                //TODO
+                readFile(arg);
             }
         }
         else if (strcasecmp(arg, "delete") == 0) {
             arg = strtok(NULL, " \n");
             if (arg == NULL) {
-                printf("Please specify the file to delete");
+                printf("Please specify the file to delete\n");
             }
             else {
                 //TODO
