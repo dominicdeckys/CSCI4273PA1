@@ -56,9 +56,13 @@ int main(int argc, char **argv) {
   char buf2[BUFSIZE];
   char *hostaddrp; /* dotted decimal host addr string */
   char * arg;
+  char * fileName = malloc(BUFSIZE);
+  FILE * file;
   char badMessage[] = "Error: Bad Message!";
   int optval; /* flag value for setsockopt */
   int n; /* message byte size */
+
+  strcpy(fileName, "NoFileName.txt");
 
   /*
    * check command line arguments
@@ -130,36 +134,29 @@ int main(int argc, char **argv) {
     printf("server received %d/%d bytes: %s\n", strlen(buf), n, buf);
 
 
-    arg = strtok(buf, " \n");
 
-    if (strcasecmp(buf, "get") == 0) {
-        arg = strtok(NULL, " \n");
-        if (arg == NULL) {
-            sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
-        }
-        else {
-            //TODO
-        }
+
+    if (buf[0] == 'f') {
+        //fclose(file);
+        strcpy(fileName, "hello_");
+        strcat(fileName, buf + 1);
+
+        n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &clientaddr, clientlen);
+        if (n < 0)
+          error("ERROR in sendto");
     }
-    else if (strcasecmp(buf, "put") == 0) {
-        arg = strtok(NULL, " \n");
-        if (arg == NULL) {
-            sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
+    else if (buf[0] == 's') {
+        printf("Got here!\n");
+        printf("%s\n", buf + 1);
+        if (file != NULL) {
+            file = fopen(fileName, "a");
+            fwrite(buf + 1, 1, n - 1, file);
+            fflush(file);
+            fclose(file);
         }
-        else {
-            //TODO
-        }
+        else error("Why is the file null?");
     }
-    else if (strcasecmp(arg, "delete") == 0) {
-        arg = strtok(NULL, " \n");
-        if (arg == NULL) {
-            printf("Please specify the file to delete");
-        }
-        else {
-            //TODO
-        }
-    }
-    else if (strcasecmp(arg, "ls") == 0) {
+    else if (buf[0] == 'l') {
         bzero(buf2, BUFSIZE);
         performLS(buf2);
         n = sendto(sockfd, buf2, strlen(buf2), 0,
@@ -167,10 +164,48 @@ int main(int argc, char **argv) {
         if (n < 0)
           error("ERROR in sendto");
     }
-    else if (strcasecmp(arg, "hello") == 0) {
-        n = sendto(sockfd, arg, strlen(arg), 0, (struct sockaddr *) &clientaddr, clientlen);
-        if (n < 0)
-          error("ERROR in sendto");
+    else {
+        arg = strtok(buf, " \n");
+        if (strcasecmp(buf, "get") == 0) {
+            arg = strtok(NULL, " \n");
+            if (arg == NULL) {
+                sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
+            }
+            else {
+                //TODO
+            }
+        }
+        else if (strcasecmp(buf, "put") == 0) {
+            arg = strtok(NULL, " \n");
+            if (arg == NULL) {
+                sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
+            }
+            else {
+                //TODO
+            }
+        }
+        else if (strcasecmp(arg, "delete") == 0) {
+            arg = strtok(NULL, " \n");
+            if (arg == NULL) {
+                printf("Please specify the file to delete");
+            }
+            else {
+                //TODO
+            }
+        }
+        else if (strcasecmp(arg, "ls") == 0) {
+            bzero(buf2, BUFSIZE);
+            performLS(buf2);
+            n = sendto(sockfd, buf2, strlen(buf2), 0,
+               (struct sockaddr *) &clientaddr, clientlen);
+            if (n < 0)
+              error("ERROR in sendto");
+        }
+        else if (strcasecmp(arg, "hello") == 0) {
+            n = sendto(sockfd, arg, strlen(arg), 0, (struct sockaddr *) &clientaddr, clientlen);
+            if (n < 0)
+              error("ERROR in sendto");
+        }
     }
     /*
      * sendto: echo the input back to the client

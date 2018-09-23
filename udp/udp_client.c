@@ -39,7 +39,44 @@ void readFile(const char * fileName) {
     }
 }
 
-void buildHeader(char * header, int type, size_t size, )
+void awaitConfirmation(char value, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
+    char buf[BUFSIZE];
+    int n;
+    while (TRUE) {
+        n = recvfrom(sockfd, buf, BUFSIZE, 0, NULL, NULL);
+        if (n < 0)
+          error("ERROR is recvfrom");
+        if (buf[0] == value) break;
+    }
+}
+
+//void buildHeader(char * header, int type, size_t size, )
+
+void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
+    char buf[BUFSIZE];
+    int n;
+    FILE * file = fopen(fileName, "r");
+    size_t byteCount = 0;
+    int t = 0;
+    bzero(buf, BUFSIZE);
+    buf[0] = 'f';
+    strcpy(buf + 1, fileName);
+    n = sendto(sockfd, buf, strlen(buf), 0, serveraddr, serverlen);
+    if (n < 0)
+            error("ERROR in sendto 1");
+    awaitConfirmation('f', sockfd, serveraddr, serverlen);
+
+    bzero(buf, BUFSIZE);
+    while ((byteCount = fread(buf + 1, 1, BUFSIZE - 1, file)) > 0) {
+        buf[0] = 's';
+        n = sendto(sockfd, buf, byteCount + 1, 0, serveraddr, serverlen);
+        if (n < 0)
+            error("ERROR in sendto");
+        t++;
+        printf("Sent Chunk %i\nSize %i\nValue: %s\n", t, byteCount, buf);
+        bzero(buf, BUFSIZE);
+    }
+}
 
 int main(int argc, char **argv) {
     int sockfd, portno, n;
@@ -120,7 +157,7 @@ int main(int argc, char **argv) {
                 printf("Please specify the file to put\n");
             }
             else {
-                readFile(arg);
+                sendFile(arg, sockfd, &serveraddr, serverlen);
             }
         }
         else if (strcasecmp(arg, "delete") == 0) {
