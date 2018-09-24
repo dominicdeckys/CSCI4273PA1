@@ -57,8 +57,6 @@ void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int s
     while ((byteCount = fread(buf + 1, 1, BUFSIZE - 1, file)) > 0) {
 
         buf[0] = 's';
-        printf("Got here!\n");
-            printf("%s\n", buf + 1);
         n = sendto(sockfd, buf, byteCount + 1, 0, serveraddr, serverlen);
         if (n < 0)
             error("ERROR in sendto");
@@ -200,6 +198,13 @@ int main(int argc, char **argv) {
     }
     else if (buf[0] == 'r') {
         sendFile(buf + 1, sockfd, &clientaddr, clientlen);
+    }
+    else if (buf[0] == 'd') {
+        remove(buf + 1);
+    }
+    else if (buf[0] == 'e') {
+        printf("Goodbye!\n");
+        return 1;
     }
     else {
         arg = strtok(buf, " \n");

@@ -199,8 +199,13 @@ int main(int argc, char **argv) {
                 printf("Please specify the file to delete\n");
             }
             else {
-                //TODO
-            }
+                bzero(buf2, BUFSIZE);
+                buf2[0] = 'd';
+                strcpy(buf2 + 1, arg);
+                n = sendto(sockfd, buf2, strlen(buf2), 0, &serveraddr, serverlen);
+                if (n < 0)
+                  error("ERROR in sendto");
+                }
         }
         else if (strcasecmp(arg, "ls") == 0) {
             n = sendto(sockfd, arg, strlen(arg), 0, &serveraddr, serverlen);
@@ -211,9 +216,14 @@ int main(int argc, char **argv) {
             n = recvfrom(sockfd, buf2, BUFSIZE, 0, &serveraddr, &serverlen);
             if (n < 0)
               error("ERROR is recvfrom");
-            printf("Result: %s\n", buf2);
+            printf("Result:\n%s\n", buf2);
         }
         else if (strcasecmp(arg, "exit") == 0) {
+            bzero(buf, BUFSIZE);
+            buf[0] = 'e';
+            n = sendto(sockfd, buf, strlen(buf), 0, &serveraddr, serverlen);
+            if (n < 0)
+              error("ERROR in sendto");
             printf("\nGoodbye\n");
             return 0;
         }
