@@ -28,6 +28,7 @@ void sayPrompt() {
     printf("get [file_name]\nput [file_name]\ndelete [file_name]\nls\nexit\n");
 }
 
+//used for testing, reads the contents of a file
 void readFile(const char * fileName) {
     FILE * file = fopen(fileName, "r");
     size_t byteCount = 0;
@@ -39,6 +40,7 @@ void readFile(const char * fileName) {
     }
 }
 
+//awaits confirmation of value from the server
 void awaitConfirmation(char value, int sockfd) {
     char buf[BUFSIZE];
     int n;
@@ -50,8 +52,7 @@ void awaitConfirmation(char value, int sockfd) {
     }
 }
 
-//void buildHeader(char * header, int type, size_t size, )
-
+//sends a file to the server
 void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
     char buf[BUFSIZE];
     int n;
@@ -61,11 +62,15 @@ void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int s
     bzero(buf, BUFSIZE);
     buf[0] = 'f';
     strcpy(buf + 1, fileName);
+
+    //alert the server we're about to send a file and send the file name
     n = sendto(sockfd, buf, strlen(buf), 0, serveraddr, serverlen);
     if (n < 0)
             error("ERROR in sendto 1");
+    //await confirmation that the server is ready to recieve the file
     awaitConfirmation('f', sockfd);
 
+    //break the file into BUFSIZE sized chunks and send it to the server
     bzero(buf, BUFSIZE);
     while ((byteCount = fread(buf + 1, 1, BUFSIZE - 1, file)) > 0) {
         buf[0] = 's';
@@ -78,16 +83,21 @@ void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int s
     }
 }
 
-void recieveFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
+//prompts the server to send a fille and receives it
+void receiveFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
     char buf[BUFSIZE];
     int n;
     FILE * file;
     bzero(buf, BUFSIZE);
     buf[0] = 'r';
     strcpy(buf + 1, fileName);
+
+    //send request to server to send over file
     n = sendto(sockfd, buf, strlen(buf), 0, serveraddr, serverlen);
     if (n < 0)
             error("ERROR in sendto 2");
+
+    //listen to data and append to the file until the server says it's finished
     while (TRUE) {
         bzero(buf, BUFSIZE);
         n = recvfrom(sockfd, buf, BUFSIZE, 0, NULL, NULL);
@@ -173,7 +183,7 @@ int main(int argc, char **argv) {
                 printf("Please specify the file to get\n");
             }
             else {
-                recieveFile(arg, sockfd, &serveraddr, serverlen);
+                receiveFile(arg, sockfd, &serveraddr, serverlen);
             }
         }
         else if (strcasecmp(arg, "put") == 0) {

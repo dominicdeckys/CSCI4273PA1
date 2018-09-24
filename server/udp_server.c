@@ -26,6 +26,7 @@ void error(char *msg) {
   exit(1);
 }
 
+//gets all the files in the current directory and puts them into ls
 int performLS(char * ls) {
     DIR *dp;
     struct dirent *ep;
@@ -45,6 +46,7 @@ int performLS(char * ls) {
     return 1;
 }
 
+//sends a file to the client, mostly the same as the function on the client's side
 void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
     char buf[BUFSIZE];
     int n;
@@ -162,7 +164,9 @@ int main(int argc, char **argv) {
 
 
 
-
+    //read the first char of the buffer
+    //the first char is used to detirmine what type of message it is
+    //f = initiate file transfer
     if (buf[0] == 'f') {
         //fclose(file);
         strcpy(fileName, buf + 1);
@@ -171,9 +175,11 @@ int main(int argc, char **argv) {
         if (n < 0)
           error("ERROR in sendto");
     }
+    //s = chunk of a file
     else if (buf[0] == 's') {
         printf("Got here!\n");
         printf("%s\n", buf + 1);
+        //append the file in the local filesystem
         if (file != NULL) {
             file = fopen(fileName, "a");
             fwrite(buf + 1, 1, n - 1, file);
@@ -182,6 +188,7 @@ int main(int argc, char **argv) {
         }
         else error("Why is the file null?");
     }
+    //l = perform ls
     else if (buf[0] == 'l') {
         bzero(buf2, BUFSIZE);
         performLS(buf2);
@@ -190,17 +197,21 @@ int main(int argc, char **argv) {
         if (n < 0)
           error("ERROR in sendto");
     }
+    //h = ping the server and return the buffer
     else if (buf[0] == 'h') {
         n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &clientaddr, clientlen);
             if (n < 0)
               error("ERROR in sendto");
     }
+    //r = send a file to the client
     else if (buf[0] == 'r') {
         sendFile(buf + 1, sockfd, &clientaddr, clientlen);
     }
+    //d = delete file
     else if (buf[0] == 'd') {
         remove(buf + 1);
     }
+    //e = exit
     else if (buf[0] == 'e') {
         printf("Goodbye!\n");
         return 1;
