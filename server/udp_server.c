@@ -61,7 +61,7 @@ void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int s
         if (n < 0)
             error("ERROR in sendto");
         t++;
-        printf("Sent Chunk %i\nSize %i\nValue: %s\n", t, byteCount, buf);
+        printf("Sent Chunk %i\nSize %i\n", t, byteCount);
         bzero(buf, BUFSIZE);
     }
     bzero(buf, BUFSIZE);
@@ -165,8 +165,7 @@ int main(int argc, char **argv) {
 
     if (buf[0] == 'f') {
         //fclose(file);
-        strcpy(fileName, "hello_");
-        strcat(fileName, buf + 1);
+        strcpy(fileName, buf + 1);
 
         n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &clientaddr, clientlen);
         if (n < 0)
@@ -205,49 +204,6 @@ int main(int argc, char **argv) {
     else if (buf[0] == 'e') {
         printf("Goodbye!\n");
         return 1;
-    }
-    else {
-        arg = strtok(buf, " \n");
-        if (strcasecmp(buf, "get") == 0) {
-            arg = strtok(NULL, " \n");
-            if (arg == NULL) {
-                sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
-            }
-            else {
-                //TODO
-            }
-        }
-        else if (strcasecmp(buf, "put") == 0) {
-            arg = strtok(NULL, " \n");
-            if (arg == NULL) {
-                sendto(sockfd, badMessage, strlen(badMessage), 0, (struct sockaddr *) &clientaddr, clientlen);
-            }
-            else {
-                //TODO
-            }
-        }
-        else if (strcasecmp(arg, "delete") == 0) {
-            arg = strtok(NULL, " \n");
-            if (arg == NULL) {
-                printf("Please specify the file to delete");
-            }
-            else {
-                //TODO
-            }
-        }
-        else if (strcasecmp(arg, "ls") == 0) {
-            bzero(buf2, BUFSIZE);
-            performLS(buf2);
-            n = sendto(sockfd, buf2, strlen(buf2), 0,
-               (struct sockaddr *) &clientaddr, clientlen);
-            if (n < 0)
-              error("ERROR in sendto");
-        }
-        else if (strcasecmp(arg, "123hello") == 0) {
-            n = sendto(sockfd, arg, strlen(arg), 0, (struct sockaddr *) &clientaddr, clientlen);
-            if (n < 0)
-              error("ERROR in sendto");
-        }
     }
     /*
      * sendto: echo the input back to the client

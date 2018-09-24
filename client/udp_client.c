@@ -73,21 +73,18 @@ void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int s
         if (n < 0)
             error("ERROR in sendto");
         t++;
-        printf("Sent Chunk %i\nSize %i\nValue: %s\n", t, byteCount, buf);
+        printf("Sent Chunk %i\nSize %i\n", t, byteCount, buf);
         bzero(buf, BUFSIZE);
     }
 }
 
-void recieveFile(char * fileName1, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
+void recieveFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
     char buf[BUFSIZE];
     int n;
     FILE * file;
-    char * fileName = malloc(BUFSIZE);
-    strcpy (fileName, "world_");
-    strcat (fileName, fileName1);
     bzero(buf, BUFSIZE);
     buf[0] = 'r';
-    strcpy(buf + 1, fileName1);
+    strcpy(buf + 1, fileName);
     n = sendto(sockfd, buf, strlen(buf), 0, serveraddr, serverlen);
     if (n < 0)
             error("ERROR in sendto 2");
