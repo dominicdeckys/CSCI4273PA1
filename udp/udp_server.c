@@ -45,6 +45,35 @@ int performLS(char * ls) {
     return 1;
 }
 
+void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
+    char buf[BUFSIZE];
+    int n;
+    FILE * file = fopen(fileName, "r");
+    size_t byteCount = 0;
+    int t = 0;
+    printf("Got here!\n");
+            printf("%s\n",fileName);
+    bzero(buf, BUFSIZE);
+    while ((byteCount = fread(buf + 1, 1, BUFSIZE - 1, file)) > 0) {
+
+        buf[0] = 's';
+        printf("Got here!\n");
+            printf("%s\n", buf + 1);
+        n = sendto(sockfd, buf, byteCount + 1, 0, serveraddr, serverlen);
+        if (n < 0)
+            error("ERROR in sendto");
+        t++;
+        printf("Sent Chunk %i\nSize %i\nValue: %s\n", t, byteCount, buf);
+        bzero(buf, BUFSIZE);
+    }
+    bzero(buf, BUFSIZE);
+    buf[0] = 'f';
+    strcpy(buf + 1, fileName);
+    n = sendto(sockfd, buf, strlen(buf), 0, serveraddr, serverlen);
+    if (n < 0)
+            error("ERROR in sendto 1");
+}
+
 int main(int argc, char **argv) {
   int sockfd; /* socket */
   int portno; /* port to listen on */
@@ -164,6 +193,14 @@ int main(int argc, char **argv) {
         if (n < 0)
           error("ERROR in sendto");
     }
+    else if (buf[0] == 'h') {
+        n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &clientaddr, clientlen);
+            if (n < 0)
+              error("ERROR in sendto");
+    }
+    else if (buf[0] == 'r') {
+        sendFile(buf + 1, sockfd, &clientaddr, clientlen);
+    }
     else {
         arg = strtok(buf, " \n");
         if (strcasecmp(buf, "get") == 0) {
@@ -201,7 +238,7 @@ int main(int argc, char **argv) {
             if (n < 0)
               error("ERROR in sendto");
         }
-        else if (strcasecmp(arg, "hello") == 0) {
+        else if (strcasecmp(arg, "123hello") == 0) {
             n = sendto(sockfd, arg, strlen(arg), 0, (struct sockaddr *) &clientaddr, clientlen);
             if (n < 0)
               error("ERROR in sendto");

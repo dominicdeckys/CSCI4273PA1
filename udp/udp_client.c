@@ -39,7 +39,7 @@ void readFile(const char * fileName) {
     }
 }
 
-void awaitConfirmation(char value, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
+void awaitConfirmation(char value, int sockfd) {
     char buf[BUFSIZE];
     int n;
     while (TRUE) {
@@ -64,7 +64,7 @@ void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int s
     n = sendto(sockfd, buf, strlen(buf), 0, serveraddr, serverlen);
     if (n < 0)
             error("ERROR in sendto 1");
-    awaitConfirmation('f', sockfd, serveraddr, serverlen);
+    awaitConfirmation('f', sockfd);
 
     bzero(buf, BUFSIZE);
     while ((byteCount = fread(buf + 1, 1, BUFSIZE - 1, file)) > 0) {
@@ -75,6 +75,39 @@ void sendFile(char * fileName, int sockfd, struct sockaddr_in *serveraddr, int s
         t++;
         printf("Sent Chunk %i\nSize %i\nValue: %s\n", t, byteCount, buf);
         bzero(buf, BUFSIZE);
+    }
+}
+
+void recieveFile(char * fileName1, int sockfd, struct sockaddr_in *serveraddr, int serverlen) {
+    char buf[BUFSIZE];
+    int n;
+    FILE * file;
+    char * fileName = malloc(BUFSIZE);
+    strcpy (fileName, "world_");
+    strcat (fileName, fileName1);
+    bzero(buf, BUFSIZE);
+    buf[0] = 'r';
+    strcpy(buf + 1, fileName1);
+    n = sendto(sockfd, buf, strlen(buf), 0, serveraddr, serverlen);
+    if (n < 0)
+            error("ERROR in sendto 2");
+    while (TRUE) {
+        bzero(buf, BUFSIZE);
+        n = recvfrom(sockfd, buf, BUFSIZE, 0, NULL, NULL);
+        if (n < 0)
+          error("ERROR in recvfrom");
+        if (buf[0] == 's') {
+            printf("Got here!\n");
+            printf("%s\n", buf + 1);
+            if (file != NULL) {
+                file = fopen(fileName, "a");
+                fwrite(buf + 1, 1, n - 1, file);
+                fflush(file);
+                fclose(file);
+            }
+            else error("Why is the file null?");
+        }
+        else break;
     }
 }
 
@@ -148,7 +181,7 @@ int main(int argc, char **argv) {
                 printf("Please specify the file to get\n");
             }
             else {
-                //TODO
+                recieveFile(arg, sockfd, &serveraddr, serverlen);
             }
         }
         else if (strcasecmp(arg, "put") == 0) {
