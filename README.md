@@ -1,8 +1,8 @@
 # CSCI4273PA1
-##Building
+## Building
 Navigate to ether the server or client directory and run the makefile to build
-##Running
-###Server
+## Running
+### Server
 ./udp_server <port>
-###Client
+### Client
 ./udp_client <Server IP> <port>
