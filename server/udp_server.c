@@ -180,13 +180,10 @@ int main(int argc, char **argv) {
         printf("Got here!\n");
         printf("%s\n", buf + 1);
         //append the file in the local filesystem
-        if (file != NULL) {
             file = fopen(fileName, "a");
             fwrite(buf + 1, 1, n - 1, file);
             fflush(file);
             fclose(file);
-        }
-        else error("Why is the file null?");
     }
     //l = perform ls
     else if (buf[0] == 'l') {
